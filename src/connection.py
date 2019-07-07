@@ -4,8 +4,11 @@ from aio_pika import (
     connect_robust,
     RobustConnection,
     Channel,
-    Queue
+    Queue,
+    exceptions
 )
+
+from src.task import Task
 
 class Connection:
     """ Class for initializing connection to AMQP broker """
@@ -38,6 +41,16 @@ class Connection:
         """ Close connection to AMQP """
 
         await self.connection.close()
+
+    async def get(self):
+        """ Get message from queue """
+
+        try:
+            result = await self.queue.get(timeout=5)
+        except exceptions.QueueEmpty:
+            return False
+        else:
+            return Task(result)
 
     async def __aenter__(self):
         result = await self.connect()

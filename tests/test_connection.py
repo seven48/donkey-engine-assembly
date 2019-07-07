@@ -4,14 +4,16 @@ import pytest
 
 from aiormq.exceptions import ProbableAuthenticationError
 
+from tests.utils import publish
 from src.connection import Connection
+from src.task import Task
 
 
 SUCCESS_URL = 'amqp://guest:guest@127.0.0.1/'
 WRONG_AUTH_URL = 'amqp://wrong:wrong@127.0.0.1/'
 BAD_HOST_URL = 'amqp://user:pass@255.255.255.255/'
 BAD_URL = 'bad url'
-QUEUE_NAME = 'test_queue'
+QUEUE_NAME = 'assembly'
 
 
 @pytest.mark.asyncio
@@ -83,3 +85,21 @@ async def test_sync_context_manager():
     with pytest.raises(AttributeError):
         with connection:  # pylint: disable=not-context-manager
             pass
+
+@pytest.mark.asyncio
+async def test_recieve_message():
+    """ Test receive regular message from queue """
+
+    connection = Connection(
+        url=SUCCESS_URL,
+        queue_name=QUEUE_NAME
+    )
+    await connection.connect()
+
+    await publish('Hello world!')
+
+    message = await connection.get()
+    assert isinstance(message, Task)
+    assert message.text == 'Hello world!'
+
+    await connection.close()

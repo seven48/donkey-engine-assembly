@@ -3,6 +3,9 @@ language: python
 python:
   - 3.6
 
+services:
+  - rabbitmq
+
 install:
   - pip install -r requirements.txt
   - pip install pylint==2.3.1
@@ -10,4 +13,4 @@ install:
 
 script:
   - find -name "*.py" -not -path "./venv/*" | xargs pylint
-  - py.test tests/
+  - env PYTHONPATH=$(pwd) py.test tests/

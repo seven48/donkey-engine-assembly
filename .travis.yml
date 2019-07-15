@@ -11,6 +11,7 @@ install:
 
 script:
   - flake8
+  - cd tests/ && flake8 && cd ../
   - py.test --cov --cov-config=setup.cfg
 
 after_success:

@@ -11,4 +11,7 @@ install:
 
 script:
   - find -name "*.py" -not -path "./venv/*" | xargs pylint
-  - env PYTHONPATH=$(pwd) py.test tests/
+  - py.test --cov --cov-config=setup.cfg
+
+after_success:
+  - codecov

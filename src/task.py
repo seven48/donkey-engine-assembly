@@ -1,7 +1,9 @@
-""" Module for class Task """
+"""Module for class Task."""
 
-class Task:  # pylint: disable=too-few-public-methods
-    """ Class for task delegating """
+
+class Task(object):
+    """Task delegating."""
 
     def __init__(self, message):
+        """Mock init method."""
         self.text = message.body.decode('UTF-8')

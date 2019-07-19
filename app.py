@@ -2,21 +2,28 @@
 
 from asyncio import get_event_loop
 
-from src.connection import Connection
-from src.settings import ASSEMBLY_MQ_URL, ASSEMBLY_QUEUE_NAME
+from src.connection import make_connection
+from src.settings import (
+    ASSEMBLY_MQ_MAX_MESSAGES,
+    ASSEMBLY_MQ_URL,
+    ASSEMBLY_QUEUE_NAME,
+)
+from src.task import Task
 
 
-async def main() -> None:
-    """Run server."""
-    connection = Connection(
+async def create_connection() -> None:
+    """Create rabbitmq connection."""
+    return await make_connection(
         url=ASSEMBLY_MQ_URL,
         queue_name=ASSEMBLY_QUEUE_NAME,
+        prefetch_count=ASSEMBLY_MQ_MAX_MESSAGES,
+        callback=Task.recieve,
     )
-    async with connection:
-        await connection.get()
 
 
 if __name__ == '__main__':
-    LOOP = get_event_loop()
-    LOOP.run_until_complete(main())
-    LOOP.close()
+    loop = get_event_loop()
+    connection = loop.run_until_complete(create_connection())
+
+    loop.run_forever()
+    loop.run_until_complete(connection.close())

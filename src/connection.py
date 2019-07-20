@@ -1,18 +1,27 @@
 """Module for AMQL broker connection."""
 
-from aio_pika import connect_robust
+from typing import Callable
+
+from aio_pika import Channel, Connection, IncomingMessage, Queue, connect_robust
+
+MessageReciever = Callable[[IncomingMessage], None]
 
 
-async def make_connection(url: str, callback, **kwargs):
+async def make_connection(
+    url: str,
+    callback: MessageReciever,
+    prefetch_count: int,
+    queue_name: str,
+) -> Connection:
     """Create connection to RabbitMQ."""
-    connection = await connect_robust(url)
+    connection: Connection = await connect_robust(url)
 
-    channel = await connection.channel()
+    channel: Channel = await connection.channel()
 
-    await channel.set_qos(prefetch_count=kwargs['prefetch_count'])
+    await channel.set_qos(prefetch_count=prefetch_count)
 
-    queue = await channel.declare_queue(
-        kwargs['queue_name'],
+    queue: Queue = await channel.declare_queue(
+        queue_name,
         auto_delete=True,
     )
 

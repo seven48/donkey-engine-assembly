@@ -1,4 +1,4 @@
-"""Module for AMQL broker connection."""
+"""Module for creating asynchronous connection to RabbitMQ using callbacks."""
 
 from typing import Callable
 
@@ -13,7 +13,7 @@ async def make_connection(
     prefetch_count: int,
     queue_name: str,
 ) -> Connection:
-    """Create connection to RabbitMQ."""
+    """Create connection and bind processing messages to callback."""
     connection: Connection = await connect_robust(url)
 
     channel: Channel = await connection.channel()

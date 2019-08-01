@@ -40,6 +40,5 @@ async def test_task_success():
     minecraft_builder = workers.get('Minecraft: Java Edition')
     assert isinstance(worker, minecraft_builder)
 
+    assert task.json['game'] == worker.game
     assert task.json['version'] == worker.version
-    assert task.json['mods'] == worker.mods
-    assert task.json['configs'] == worker.configs

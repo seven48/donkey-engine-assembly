@@ -27,4 +27,4 @@ class Task(object):
         async with message.process():
             task_handler = cls(message)
             worker = task_handler.delegate()
-            worker.build()
+            await worker.build()

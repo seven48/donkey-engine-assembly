@@ -8,6 +8,9 @@ from src.assets import workers
 from src.task import Task
 
 success_message_body = {
+    'build': {
+        'id': 150,
+    },
     'game': 'Minecraft: Java Edition',
     'version': '1.2.5',
     'mods': [
@@ -40,5 +43,6 @@ async def test_task_success():
     minecraft_builder = workers.get('Minecraft: Java Edition')
     assert isinstance(worker, minecraft_builder)
 
+    assert task.json['build']['id'] == worker.build_id
     assert task.json['game'] == worker.game
     assert task.json['version'] == worker.version

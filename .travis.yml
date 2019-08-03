@@ -6,7 +6,14 @@ python:
   - 3.6
 
 services:
+  - docker
   - rabbitmq
+
+before_install:
+  - git clone --branch feature/add-storage-docker https://github.com/donkey-engine/docker.git
+  - docker build -t storage ./docker/storage
+  - docker run -p 2121:2121 -d storage
+  - docker ps
 
 install:
   - pip install -r requirements-dev.txt

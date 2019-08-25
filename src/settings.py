@@ -1,4 +1,8 @@
-"""Project settings."""
+"""Project settings.
+
+Project settings variables are taken from environment variables which are
+described in README. If no value is specified, the default value is set.
+"""
 
 import os
 

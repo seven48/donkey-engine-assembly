@@ -13,7 +13,11 @@ async def make_connection(
     prefetch_count: int,
     queue_name: str,
 ) -> Connection:
-    """Create connection and bind processing messages to callback."""
+    """Create connection with RabbitMQ service.
+
+    Create a connection with RabbitMQ service and bind callback method
+    like a method for messages processing.
+    """
     connection: Connection = await connect_robust(url)
 
     channel: Channel = await connection.channel()

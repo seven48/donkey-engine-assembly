@@ -1,4 +1,4 @@
-"""Module for building server objects."""
+"""Module for building game servers and saving them to FTP."""
 
 from io import BytesIO
 
@@ -11,7 +11,10 @@ class MinecraftBuilder(object):
     """Minecraft: Java Edition server building."""
 
     def __init__(self, options):
-        """Initializate builder with specified options."""
+        """Initialize a Minecraft server builder.
+
+        Parse incomming options. Get build id, game name and game version data.
+        """
         self.build_id = options['build']['id']
         self.game = options['game']
         self.version = options['version']
@@ -19,7 +22,13 @@ class MinecraftBuilder(object):
         self.storage = BytesIO()
 
     async def prepare_server(self):
-        """Init pure server instance and save it to `self.storage`."""
+        """Init Minecraft server.
+
+        Download pure Minecraft server without any mods and settings from FTP
+        and save it to `self.storage` class attribute to work with it to:
+        - save mods into it
+        - update settings.
+        """
         client_session = ClientSession(
             host=ASSEMBLY_FTP_HOST,
             port=ASSEMBLY_FTP_PORT,
@@ -36,7 +45,11 @@ class MinecraftBuilder(object):
                 self.storage.seek(0)
 
     async def stor_server(self):
-        """Save ready server instance to FTP server."""
+        """Upload local Minecraft server instance to FTP.
+
+        Upload prepared Minecraft server instance from `self.storage` attribute
+        to Donkey Engine FTP server to special directory.
+        """
         client_session = ClientSession(
             host=ASSEMBLY_FTP_HOST,
             port=ASSEMBLY_FTP_PORT,
@@ -49,6 +62,15 @@ class MinecraftBuilder(object):
                 await stream.write(self.storage.read())
 
     async def build(self):
-        """Build minecraft server."""
+        """Minecraft server build pipeline.
+
+        This method will be called from lowest-level module `Task`
+        in method `Task.recieve(cls, message)`.
+        This method creates a Minecraft server by calling helper methods.
+
+        Algorithm in method deals with the following tasks:
+        - download server from FTP
+        - upload prepared Minecraft server to FTP.
+        """
         await self.prepare_server()
         await self.stor_server()

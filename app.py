@@ -12,7 +12,11 @@ from src.task import Task
 
 
 async def create_connection() -> None:
-    """Create rabbitmq connection."""
+    """Create RabbitMQ connection.
+
+    Make async RabbitMQ connection and
+    bind callback for new messages in the queue.
+    """
     return await make_connection(
         url=ASSEMBLY_MQ_URL,
         queue_name=ASSEMBLY_QUEUE_NAME,

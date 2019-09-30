@@ -1,6 +1,7 @@
 """Module for building game servers and saving them to FTP."""
 
 from io import BytesIO
+from zipfile import ZipFile
 
 from aioftp import ClientSession
 
@@ -43,6 +44,11 @@ class MinecraftBuilder(object):
                 async for block in stream.iter_by_block():
                     self.storage.write(block)
                 self.storage.seek(0)
+
+    async def modificate_server(self):
+        """Save mods to server instance."""
+        zipfile = ZipFile(self.storage)
+        # TODO
 
     async def stor_server(self):
         """Upload local Minecraft server instance to FTP.

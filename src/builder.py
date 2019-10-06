@@ -1,10 +1,67 @@
 """Module for building game servers and saving them to FTP."""
 
-from io import BytesIO
+from io import BytesIO, StringIO
 
 from aioftp import ClientSession
 
 from src.settings import ASSEMBLY_FTP_HOST, ASSEMBLY_FTP_PORT
+
+properties_default_values = {
+    'generator-settings': None,
+    'op-permission-level': 4,
+    'allow-nether': True,
+    'level-name': 'Map',
+    'enable-query': False,
+    'allow-flight': False,
+    'announce-player-achievements': True,
+    'server-port': 25565,
+    'max-world-size': 29999984,
+    'level-type': 'DEFAULT',
+    'enable-rcon': False,
+    'force-gamemode': False,
+    'level-seed': None,
+    'server-ip': None,
+    'network-compression-threshold': 256,
+    'max-build-height': 256,
+    'spawn-npcs': True,
+    'white-list': False,
+    'spawn-animals': True,
+    'snooper-enabled': True,
+    'hardcore': False,
+    'resource-pack-sha1': None,
+    'online-mode': True,
+    'resource-pack': None,
+    'pvp': True,
+    'broadcast-console-to-ops': True,
+    'difficulty': 1,
+    'enable-command-block': False,
+    'player-idle-timeout': 0,
+    'gamemode': 0,
+    'max-players': 20,
+    'max-tick-time': 60000,
+    'spawn-monsters': True,
+    'view-distance': 10,
+    'generate-structures': True,
+    'motd': 'A Donkey Engine Minecraft server',
+}
+
+
+def convert_properties_value(conf_value):
+    """Convert properties value.
+
+    Builder class works with python build-in types but
+    Minecraft server.properties file are read by Java application.
+    There are some difference between python "True" and necessary value "true".
+    """
+    if isinstance(conf_value, str):
+        return conf_value
+    if isinstance(conf_value, bool):
+        if conf_value:
+            return 'true'
+        return 'else'
+    if isinstance(conf_value, int):
+        return str(conf_value)
+    return str(conf_value)
 
 
 class MinecraftBuilder(object):
@@ -17,9 +74,11 @@ class MinecraftBuilder(object):
         """
         self.build_id = options['build']['id']
         self.game = options['game']
+        self.configs = options['configs']
         self.version = options['version']
 
         self.storage = BytesIO()
+        self.server_properties = StringIO()
 
     async def prepare_server(self):
         """Init Minecraft server.
@@ -44,6 +103,30 @@ class MinecraftBuilder(object):
                     self.storage.write(block)
                 self.storage.seek(0)
 
+    def configure(self):
+        """Configure server properties file.
+
+        Accepts JSON data from RabbitMQ, convert it to Minecraft necessary value
+        and store it to class atribute `self.server_properties`.
+        """
+        configured_properties = []
+
+        for conf_key in properties_default_values:
+            user_value = self.configs.get(conf_key)
+            default_value = properties_default_values.get(conf_key)
+
+            configured_properties.append(
+                '{0}={1}\n'.format(
+                    conf_key,
+                    convert_properties_value(
+                        user_value or default_value,
+                    ),
+                ),
+            )
+
+        self.server_properties.writelines(configured_properties)
+        self.server_properties.seek(0)
+
     async def stor_server(self):
         """Upload local Minecraft server instance to FTP.
 
@@ -58,8 +141,15 @@ class MinecraftBuilder(object):
             server_directory = '/servers/{0}'.format(self.build_id)
             await client.make_directory(server_directory)
             full_path = '/servers/{0}/server.jar'.format(self.build_id)
+
             async with client.upload_stream(full_path) as stream:
                 await stream.write(self.storage.read())
+
+            full_path = '/servers/{0}/server.properties'.format(self.build_id)
+            async with client.upload_stream(full_path) as stream:
+                await stream.write(
+                    bytes(self.server_properties.read(), 'UTF-8'),
+                )
 
     async def build(self):
         """Minecraft server build pipeline.
@@ -73,4 +163,5 @@ class MinecraftBuilder(object):
         - upload prepared Minecraft server to FTP.
         """
         await self.prepare_server()
+        self.configure()
         await self.stor_server()

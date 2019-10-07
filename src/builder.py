@@ -64,6 +64,13 @@ def convert_properties_value(conf_value):
     return str(conf_value)
 
 
+def convert_file_content(file_content):
+    """Convert file content to bytes."""
+    if isinstance(file_content, str):
+        return bytes(file_content, 'UTF-8')
+    return file_content
+
+
 class MinecraftBuilder(object):
     """Minecraft: Java Edition server building."""
 
@@ -77,14 +84,16 @@ class MinecraftBuilder(object):
         self.configs = options['configs']
         self.version = options['version']
 
-        self.storage = BytesIO()
-        self.server_properties = StringIO()
+        self.files = {
+            'server.jar': BytesIO(),
+            'server.properties': StringIO(),
+        }
 
     async def prepare_server(self):
         """Init Minecraft server.
 
         Download pure Minecraft server without any mods and settings from FTP
-        and save it to `self.storage` class attribute to work with it to:
+        and save it to storage class attribute to work with it to:
         - save mods into it
         - update settings.
         """
@@ -100,8 +109,8 @@ class MinecraftBuilder(object):
             )
             async with client.download_stream(ftp_path) as stream:
                 async for block in stream.iter_by_block():
-                    self.storage.write(block)
-                self.storage.seek(0)
+                    self.files['server.jar'].write(block)
+                self.files['server.jar'].seek(0)
 
     def configure(self):
         """Configure server properties file.
@@ -124,8 +133,8 @@ class MinecraftBuilder(object):
                 ),
             )
 
-        self.server_properties.writelines(configured_properties)
-        self.server_properties.seek(0)
+        self.files['server.properties'].writelines(configured_properties)
+        self.files['server.properties'].seek(0)
 
     async def stor_server(self):
         """Upload local Minecraft server instance to FTP.
@@ -138,18 +147,17 @@ class MinecraftBuilder(object):
             port=ASSEMBLY_FTP_PORT,
         )
         async with client_session as client:
-            server_directory = '/servers/{0}'.format(self.build_id)
-            await client.make_directory(server_directory)
-            full_path = '/servers/{0}/server.jar'.format(self.build_id)
+            await client.make_directory('/servers/{0}'.format(self.build_id))
 
-            async with client.upload_stream(full_path) as stream:
-                await stream.write(self.storage.read())
-
-            full_path = '/servers/{0}/server.properties'.format(self.build_id)
-            async with client.upload_stream(full_path) as stream:
-                await stream.write(
-                    bytes(self.server_properties.read(), 'UTF-8'),
+            for filename in self.files:
+                full_path = '/servers/{0}/{1}'.format(
+                    self.build_id,
+                    filename,
                 )
+                async with client.upload_stream(full_path) as stream:
+                    await stream.write(
+                        convert_file_content(self.files[filename].read()),
+                    )
 
     async def build(self):
         """Minecraft server build pipeline.

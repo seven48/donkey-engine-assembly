@@ -87,6 +87,7 @@ class MinecraftBuilder(object):
         self.files = {
             'server.jar': BytesIO(),
             'server.properties': StringIO(),
+            'Dockerfile': StringIO(),
         }
 
     async def prepare_server(self):
@@ -136,6 +137,22 @@ class MinecraftBuilder(object):
         self.files['server.properties'].writelines(configured_properties)
         self.files['server.properties'].seek(0)
 
+    def generate_dockerfile(self):
+        """Generate Dockerfile for hosting service.
+
+        Creates Dockerfile for Minecraft Server file (server.jar)
+        and properties file.
+        """
+        dockerfile_text = [
+            'FROM openjdk:8u212-jre-alpine',
+            'COPY ./server.jar /home/app/server.jar',
+            'COPY ./server.properties ./home/app/server.properties',
+            'WORKDIR /home/app/',
+            'CMD ["java","-Xmx1024M","-Xms1024M","-jar","server.jar","nogui"]',
+        ]
+        self.files['Dockerfile'].write('\n'.join(dockerfile_text))
+        self.files['Dockerfile'].seek(0)
+
     async def stor_server(self):
         """Upload local Minecraft server instance to FTP.
 
@@ -172,4 +189,5 @@ class MinecraftBuilder(object):
         """
         await self.prepare_server()
         self.configure()
+        self.generate_dockerfile()
         await self.stor_server()

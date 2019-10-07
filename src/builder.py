@@ -59,8 +59,8 @@ def convert_properties_value(conf_value):
         if conf_value:
             return 'true'
         return 'else'
-    if isinstance(conf_value, int):
-        return str(conf_value)
+    if conf_value is None:
+        return ''
     return str(conf_value)
 
 
